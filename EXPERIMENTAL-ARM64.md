@@ -10,7 +10,8 @@ is rolling, so installed package versions can be newer than the image snapshot.
 
 The action temporarily applies `runtime/anyvm-0.7.7-braich.patch` to the pinned
 anyvm 0.7.7 release asset, only for OmniOS arm64. Both the runtime and U-Boot
-firmware are checked against SHA256 pins. Other architectures use the original
+firmware are checked against SHA256 pins. Firmware is downloaded from the same
+experimental builder release as the image. Other architectures use the original
 runtime. The patch selects U-Boot, MMIO virtio devices, and a generated device
 tree with a serial alias instead of the generic EDK2/PCI configuration.
 
@@ -43,24 +44,27 @@ jobs:
 The default `vmactions/omnios-vm@v1` does not contain this branch's changes.
 Allow several minutes for boot and package installation under emulation.
 
-The `Experimental arm64` workflow accepts an `omnios-builder` run ID, downloads
-that run's image artifact, and tests the local action on x86 and arm64 runners.
-It checks native C compilation and execution, environment forwarding,
+The `Experimental arm64` workflow tests the published image by default. Its
+optional `builder_run_id` input downloads an `omnios-builder` run's artifact
+instead. Both paths test the local action on x86 and arm64 runners, including
+native C compilation and execution, environment forwarding,
 synchronization in both directions, the persistent shell wrapper, and a
 separate r151060 x86 regression job.
 
-The experimental image uses builder version `v2.1.4-aarch64.1` in
-`notpeter/omnios-builder`. Like the existing upstream builder images, it ships
+The experimental image is published as
+[`v2.1.4-aarch64.1`](https://github.com/notpeter/omnios-builder/releases/tag/v2.1.4-aarch64.1)
+in `notpeter/omnios-builder`. Like the existing upstream builder images, it ships
 with a public, build-generated SSH login key and is intended for disposable CI
-guests. Prerelease publication and validation of the release-download path are
-in progress.
+guests. The release includes image and firmware checksums in `SHA256SUMS`.
 
 Local QEMU validation has passed boot, DHCP, SSH, DNS, GCC 14.3.0 native C
 compilation/execution, SCP, rsync and tar round trips, and clean shutdown/restart.
 The complete isolated builder also passed. Its hosted counterpart's image was
 booted locally with the patched runtime and passed SSH and bidirectional rsync.
+The final published image and firmware were then downloaded into a fresh local
+runtime directory and passed boot, SSH, DNS, rsync and clean shutdown again.
 
-The [first hosted action run](https://github.com/notpeter/omnios-vm/actions/runs/43638616277)
+The [published-image action run](https://github.com/notpeter/omnios-vm/actions/runs/43641173749)
 passed the arm64 guest test on both `ubuntu-24.04` (QEMU 8.2.2) and
 `ubuntu-26.04-arm` (QEMU 10.2.1), including native compilation, environment
 forwarding, copyback and the persistent shell wrapper. The separate r151060
