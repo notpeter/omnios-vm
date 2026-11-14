@@ -27,3 +27,7 @@ separate r151060 x86 regression job.
 
 Image distribution and hosted validation are in progress; the experimental
 builder version in the configuration is reserved for the validated artifact.
+
+Local QEMU validation has passed boot, DHCP, SSH, DNS, GCC 14.3.0 native C
+compilation/execution, SCP, rsync and tar round trips. Hosted action results are
+still pending.

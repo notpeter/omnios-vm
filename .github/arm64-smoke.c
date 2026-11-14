@@ -12,7 +12,7 @@
 int main(void)
 {
     struct utsname info;
-    assert(uname(&info) == 0);
+    assert(uname(&info) >= 0);
     assert(strcmp(info.sysname, "SunOS") == 0);
     assert(sizeof(void *) == 8);
     uint64_t *values = calloc(1024, sizeof(*values));
