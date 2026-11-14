@@ -1,0 +1,92 @@
+name: Experimental arm64
+on:
+  workflow_dispatch:
+    inputs:
+      builder_run_id:
+        description: Successful experimental omnios-builder run containing the image artifact
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: experimental-arm64-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-26.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      OMNIOS_ARM64_SMOKE: forwarded-to-arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          repository: notpeter/omnios-builder
+          run-id: ${{ inputs.builder_run_id }}
+          github-token: ${{ github.token }}
+          name: omnios-r151059-aarch64
+          path: ${{ runner.temp }}/braich/omnios/v2.1.4-aarch64.1
+      - name: Prepare image and synchronization fixture
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends zstd
+          zstd -d --keep "$RUNNER_TEMP/braich/omnios/v2.1.4-aarch64.1/omnios-r151059-aarch64.qcow2.zst"
+          printf 'host-to-arm64\n' > arm64-input.txt
+      - name: Compile and run inside experimental OmniOS
+        uses: ./
+        with:
+          arch: aarch64
+          release: r151059
+          mem: 3072
+          cpu: 2
+          data-dir: ${{ runner.temp }}/braich
+          disable-cache: true
+          debug: true
+          sync: rsync
+          copyback: true
+          envs: OMNIOS_ARM64_SMOKE
+          prepare: |
+            pkg install --accept build-essential
+          run: |
+            set -eu
+            test "$(uname -p)" = aarch64
+            test "$OMNIOS_ARM64_SMOKE" = forwarded-to-arm64
+            grep -qx host-to-arm64 arm64-input.txt
+            uname -a
+            gcc -Wall -Wextra -Werror .github/arm64-smoke.c -o /tmp/arm64-smoke
+            /tmp/arm64-smoke
+            printf 'arm64-to-host\n' > arm64-output.txt
+      - name: Check copyback
+        run: grep -qx arm64-to-host arm64-output.txt
+      - name: Check persistent shell wrapper
+        shell: omnios {0}
+        run: |
+          set -eu
+          test "$(uname -p)" = aarch64
+          /tmp/arm64-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arm64-smoke-logs-${{ matrix.runner }}
+          path: |
+            ${{ runner.temp }}/braich/**/*.log
+            ${{ runner.temp }}/braich/**/*.cmdline
+          retention-days: 3
+  x86-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          release: r151060
+          copyback: false
+          run: |
+            set -eu
+            test "$(uname -p)" = i386
+            uname -a
