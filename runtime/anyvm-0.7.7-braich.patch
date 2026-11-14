@@ -37,7 +37,7 @@
          # microvm has no PCI bus: attach the disk on the MMIO virtio
          # transport (virtio-blk-device), same as the netbsd riscv64 branch
          # below. The guest still sees it as ld0 (same virtio-blk driver the
-@@ -10488,7 +10498,36 @@
+@@ -10488,7 +10498,37 @@
          config['firmware'] = fetch_firmware_url(config['firmware'], output_dir, vm_name, config['debug'])
  
      # Platform specific args
@@ -46,8 +46,9 @@
 +        # Experimental OmniOS uses U-Boot, GICv2, and MMIO virtio, not EDK2/PCI.
 +        firmware = os.path.join(output_dir, 'omnios-aarch64-u-boot.bin')
 +        if not os.path.exists(firmware):
-+            download_file('https://downloads.omnios.org/media/braich/u-boot.bin',
-+                          firmware, config['debug'])
++            firmware_url = 'https://github.com/{}/releases/download/v{}/omnios-aarch64-u-boot.bin'.format(
++                builder_repo, config['builder'])
++            download_file(firmware_url, firmware, config['debug'])
 +        with open(firmware, 'rb') as f:
 +            digest = hashlib.sha256(f.read()).hexdigest()
 +        if digest != '3aa554094ffe1d86d7f9637e548d07df804f5034c32ac3da542ee8da6e2e783e':
@@ -75,7 +76,7 @@
          efi_path = os.path.join(output_dir, vm_name + "-QEMU_EFI.fd")
          vars_path = os.path.join(output_dir, vm_name + "-QEMU_EFI_VARS.fd")
  
-@@ -11531,7 +11570,7 @@
+@@ -11531,7 +11571,7 @@
      # armv7 is raspi2b, which has no PCI bus at all -- a blunter version of
      # the sparc64 case: QEMU aborts at launch rather than merely confusing
      # the guest.
