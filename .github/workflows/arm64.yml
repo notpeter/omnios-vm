@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
     inputs:
       builder_run_id:
-        description: Successful experimental omnios-builder run containing the image artifact
-        required: true
+        description: Optional builder artifact run ID; omit to test the published experimental image
+        required: false
         type: string
 permissions:
   contents: read
@@ -23,20 +23,23 @@ jobs:
     env:
       OMNIOS_ARM64_SMOKE: forwarded-to-arm64
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        if: inputs.builder_run_id != ''
         with:
           repository: notpeter/omnios-builder
           run-id: ${{ inputs.builder_run_id }}
           github-token: ${{ github.token }}
           name: omnios-r151059-aarch64
           path: ${{ runner.temp }}/braich/omnios/v2.1.4-aarch64.1
-      - name: Prepare image and synchronization fixture
+      - name: Prepare downloaded image
+        if: inputs.builder_run_id != ''
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends zstd
           zstd -d --keep "$RUNNER_TEMP/braich/omnios/v2.1.4-aarch64.1/omnios-r151059-aarch64.qcow2.zst"
-          printf 'host-to-arm64\n' > arm64-input.txt
+      - name: Create synchronization fixture
+        run: printf 'host-to-arm64\n' > arm64-input.txt
       - name: Compile and run inside experimental OmniOS
         uses: ./
         with:
@@ -69,7 +72,7 @@ jobs:
           set -eu
           test "$(uname -p)" = aarch64
           /tmp/arm64-smoke
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: arm64-smoke-logs-${{ matrix.runner }}
@@ -81,7 +84,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./
         with:
           release: r151060
