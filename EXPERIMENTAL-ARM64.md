@@ -53,5 +53,11 @@ Image distribution and hosted validation are in progress; the experimental
 builder version in the configuration is reserved for the validated artifact.
 
 Local QEMU validation has passed boot, DHCP, SSH, DNS, GCC 14.3.0 native C
-compilation/execution, SCP, rsync and tar round trips. Hosted action results are
-still pending.
+compilation/execution, SCP, rsync and tar round trips, and clean shutdown/restart.
+The complete isolated builder also passed. Its hosted counterpart's image was
+booted locally with the patched runtime and passed SSH and bidirectional rsync.
+
+The [first hosted action run](https://github.com/notpeter/omnios-vm/actions/runs/43638616277)
+has passed the arm64 guest test on `ubuntu-24.04` (including native compilation,
+environment forwarding, copyback and the persistent shell wrapper) and the
+separate x86 regression test. The arm64-host job is still pending.
