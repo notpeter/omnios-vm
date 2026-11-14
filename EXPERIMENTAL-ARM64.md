@@ -19,6 +19,30 @@ The initial configuration uses 3072 MB RAM and two CPUs. Native acceleration,
 other hosts, and NFS synchronization are not claimed supported. The advertised
 sync methods are rsync, scp and tar.
 
+Use the experimental branch explicitly (or pin a tested commit from it):
+
+```yaml
+jobs:
+  omnios-arm64:
+    runs-on: ubuntu-24.04 # ubuntu-26.04-arm also runs the guest with TCG
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: notpeter/omnios-vm@illumos_aarch64
+        with:
+          release: r151059
+          arch: aarch64
+          mem: 3072
+          cpu: 2
+          prepare: pkg install --accept build-essential
+          run: |
+            uname -a
+            gcc --version
+```
+
+The default `vmactions/omnios-vm@v1` does not contain this branch's changes.
+Allow several minutes for boot and package installation under emulation.
+
 The `Experimental arm64` workflow accepts an `omnios-builder` run ID, downloads
 that run's image artifact, and tests the local action on x86 and arm64 runners.
 It checks native C compilation and execution, environment forwarding,

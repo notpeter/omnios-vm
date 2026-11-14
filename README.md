@@ -8,6 +8,10 @@ See all the supported VMs: [VMActions.org](https://vmactions.org)
 
 Powered by [AnyVM.org](https://anyvm.org)
 
+This branch also provides [experimental aarch64 support](EXPERIMENTAL-ARM64.md)
+using the braich r151059 snapshot. It requires an explicit release and architecture;
+it is not a stable or LTS OmniOS target.
+
 ## :robot: AI Ready
 
 > [!TIP]
