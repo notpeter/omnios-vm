@@ -49,8 +49,11 @@ It checks native C compilation and execution, environment forwarding,
 synchronization in both directions, the persistent shell wrapper, and a
 separate r151060 x86 regression job.
 
-Image distribution and hosted validation are in progress; the experimental
-builder version in the configuration is reserved for the validated artifact.
+The experimental image uses builder version `v2.1.4-aarch64.1` in
+`notpeter/omnios-builder`. Like the existing upstream builder images, it ships
+with a public, build-generated SSH login key and is intended for disposable CI
+guests. Prerelease publication and validation of the release-download path are
+in progress.
 
 Local QEMU validation has passed boot, DHCP, SSH, DNS, GCC 14.3.0 native C
 compilation/execution, SCP, rsync and tar round trips, and clean shutdown/restart.
@@ -58,6 +61,7 @@ The complete isolated builder also passed. Its hosted counterpart's image was
 booted locally with the patched runtime and passed SSH and bidirectional rsync.
 
 The [first hosted action run](https://github.com/notpeter/omnios-vm/actions/runs/43638616277)
-has passed the arm64 guest test on `ubuntu-24.04` (including native compilation,
-environment forwarding, copyback and the persistent shell wrapper) and the
-separate x86 regression test. The arm64-host job is still pending.
+passed the arm64 guest test on both `ubuntu-24.04` (QEMU 8.2.2) and
+`ubuntu-26.04-arm` (QEMU 10.2.1), including native compilation, environment
+forwarding, copyback and the persistent shell wrapper. The separate r151060
+x86 regression test passed too.
