@@ -12,7 +12,20 @@
      if config['builder']:
          builder_repo = brepo if cmp_version(config['builder'], "2.0.0") >= 0 else arepo
          release_repo_candidates = [builder_repo]
-@@ -10195,7 +10198,10 @@
+@@ -9759,7 +9762,11 @@
+     
+     # Acceleration determination
+     accel = "tcg"
+-    if config['arch'] == "aarch64":
++    if braich:
++        # Keep timeout/probe policy consistent with the TCG-only launch below.
++        if not boot_timeout_user_specified:
++            config['boot_timeout_sec'] = 1800
++    elif config['arch'] == "aarch64":
+         if host_arch == "aarch64":
+             if os.path.exists("/dev/kvm"):
+                 if os.access("/dev/kvm", os.R_OK | os.W_OK):
+@@ -10195,7 +10202,10 @@
          or config['arch'] in ("powerpc64", "powerpc64le", "ppc64", "ppc64le")
          or config.get('useefi')
      )
@@ -24,7 +37,7 @@
          # microvm has no PCI bus: attach the disk on the MMIO virtio
          # transport (virtio-blk-device), same as the netbsd riscv64 branch
          # below. The guest still sees it as ld0 (same virtio-blk driver the
-@@ -10488,7 +10494,37 @@
+@@ -10488,7 +10498,36 @@
          config['firmware'] = fetch_firmware_url(config['firmware'], output_dir, vm_name, config['debug'])
  
      # Platform specific args
@@ -35,7 +48,6 @@
 +        if not os.path.exists(firmware):
 +            download_file('https://downloads.omnios.org/media/braich/u-boot.bin',
 +                          firmware, config['debug'])
-+        import hashlib
 +        with open(firmware, 'rb') as f:
 +            digest = hashlib.sha256(f.read()).hexdigest()
 +        if digest != '3aa554094ffe1d86d7f9637e548d07df804f5034c32ac3da542ee8da6e2e783e':
@@ -63,7 +75,7 @@
          efi_path = os.path.join(output_dir, vm_name + "-QEMU_EFI.fd")
          vars_path = os.path.join(output_dir, vm_name + "-QEMU_EFI_VARS.fd")
  
-@@ -11531,7 +11567,7 @@
+@@ -11531,7 +11570,7 @@
      # armv7 is raspi2b, which has no PCI bus at all -- a blunter version of
      # the sparc64 case: QEMU aborts at launch rather than merely confusing
      # the guest.
