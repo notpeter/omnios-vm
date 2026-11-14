@@ -563,7 +563,7 @@ async function install(arch, sync, builderVersion, debug, disableCache) {
       // on Debian/Ubuntu (i386 is the GNU Hurd 2025-i386 guest).
       pkgs.push("qemu-system-x86", "ovmf");
     } else if (arch === 'aarch64' || arch === 'arm64') {
-      pkgs.push("qemu-system-arm", "qemu-efi-aarch64", "ipxe-qemu");
+      pkgs.push("qemu-system-arm", "qemu-efi-aarch64", "ipxe-qemu", "device-tree-compiler");
     } else {
       // qemu-system-misc covers the "misc" targets (loongarch64, and riscv64
       // up to Ubuntu 24.04 -- see below), but ppc64 / sparc64 / s390x ship in
@@ -1028,6 +1028,16 @@ async function main() {
         `Could not download anyvm.py for v${anyvmVersion} (${err.message}). ` +
         `Check that the anyvm release v${anyvmVersion} exists and has anyvm.py ` +
         `attached as a release asset.`);
+    }
+    if (osName === 'omnios' && arch === 'aarch64') {
+      // Temporary, reviewed delta until the upstream runtime supports braich.
+      // Refuse to patch a different release or a replaced release asset.
+      const digest = crypto.createHash('sha256').update(fs.readFileSync(anyvmPath)).digest('hex');
+      if (anyvmVersion !== '0.7.7' || digest !== '36b6f1e6ce978f22c1614725ad22b33b0df3476ee5496f993ac7b0960e561c79') {
+        throw new Error('Experimental arm64 runtime does not match the reviewed anyvm 0.7.7 asset');
+      }
+      await exec.exec('patch', ['--batch', anyvmPath, path.join(__dirname, 'runtime/anyvm-0.7.7-braich.patch')]);
+      process.env.OMNIOS_AARCH64_BUILDER_REPO = env['BUILDER_REPO'];
     }
     core.endGroup();
 

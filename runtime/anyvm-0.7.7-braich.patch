@@ -1,0 +1,74 @@
+--- anyvm.py
++++ anyvm.py
+@@ -8725,8 +8725,11 @@
+         else:
+             config['vga'] = "virtio"
+ 
++    braich = config['os'] == 'omnios' and config['arch'] == 'aarch64'
+     arepo = "vmactions/{}-builder".format(config['os'])
+     brepo = "anyvm-org/{}-builder".format(config['os'])
++    if braich:
++        brepo = os.environ.get('OMNIOS_AARCH64_BUILDER_REPO', brepo)
+     if config['builder']:
+         builder_repo = brepo if cmp_version(config['builder'], "2.0.0") >= 0 else arepo
+         release_repo_candidates = [builder_repo]
+@@ -10195,7 +10198,10 @@
+         or config['arch'] in ("powerpc64", "powerpc64le", "ppc64", "ppc64le")
+         or config.get('useefi')
+     )
+-    if guest_profile and guest_profile.get('machine_type') == "microvm":
++    if braich:
++        # Attach the NIC before the disk below, matching the image's FDT paths.
++        pass
++    elif guest_profile and guest_profile.get('machine_type') == "microvm":
+         # microvm has no PCI bus: attach the disk on the MMIO virtio
+         # transport (virtio-blk-device), same as the netbsd riscv64 branch
+         # below. The guest still sees it as ld0 (same virtio-blk driver the
+@@ -10488,7 +10494,37 @@
+         config['firmware'] = fetch_firmware_url(config['firmware'], output_dir, vm_name, config['debug'])
+ 
+     # Platform specific args
+-    if config['arch'] == "aarch64":
++    if braich:
++        # Experimental OmniOS uses U-Boot, GICv2, and MMIO virtio, not EDK2/PCI.
++        firmware = os.path.join(output_dir, 'omnios-aarch64-u-boot.bin')
++        if not os.path.exists(firmware):
++            download_file('https://downloads.omnios.org/media/braich/u-boot.bin',
++                          firmware, config['debug'])
++        import hashlib
++        with open(firmware, 'rb') as f:
++            digest = hashlib.sha256(f.read()).hexdigest()
++        if digest != '3aa554094ffe1d86d7f9637e548d07df804f5034c32ac3da542ee8da6e2e783e':
++            fatal('Experimental OmniOS U-Boot SHA256 mismatch')
++        hardware = ['-cpu', 'cortex-a53',
++                    '-device', 'virtio-net-device,netdev=net0',
++                    '-device', 'virtio-blk-device,drive=disk0',
++                    '-drive', 'file={},format=qcow2,if=none,id=disk0'.format(qcow_name)]
++        dtb = os.path.join(output_dir, 'omnios-aarch64.dtb')
++        # Older QEMU has stdout-path but no serial0 alias. The illumos loader
++        # requires both. Generate for this VM's actual memory and CPU count.
++        subprocess.run([qemu_bin, '-machine', 'virt,dumpdtb=' + dtb,
++                        '-m', config['mem'], '-smp', config['cpu'],
++                        '-display', 'none', '-netdev', 'user,id=net0'] + hardware,
++                       check=True)
++        alias = subprocess.run(['fdtget', dtb, '/aliases', 'serial0'],
++                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
++        if alias.returncode:
++            subprocess.run(['fdtput', '-c', dtb, '/aliases'], check=False)
++            subprocess.run(['fdtput', '-t', 's', dtb, '/aliases', 'serial0',
++                            '/pl011@9000000'], check=True)
++        args_qemu.extend(['-machine', 'virt,accel=tcg', '-bios', firmware,
++                          '-dtb', dtb] + hardware)
++    elif config['arch'] == "aarch64":
+         efi_path = os.path.join(output_dir, vm_name + "-QEMU_EFI.fd")
+         vars_path = os.path.join(output_dir, vm_name + "-QEMU_EFI_VARS.fd")
+ 
+@@ -11531,7 +11567,7 @@
+     # armv7 is raspi2b, which has no PCI bus at all -- a blunter version of
+     # the sparc64 case: QEMU aborts at launch rather than merely confusing
+     # the guest.
+-    if (config['os'] not in ("solaris", "reactos")
++    if (not braich and config['os'] not in ("solaris", "reactos")
+             and config['arch'] not in ("sparc64", "armv7")):
+         if config['arch'] == "s390x":
+             rng_dev = "virtio-rng-ccw"
