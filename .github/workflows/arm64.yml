@@ -1,5 +1,8 @@
 name: Experimental arm64
 on:
+  push:
+    branches: [illumos_aarch64]
+    paths: ['.github/workflows/arm64.yml']
   workflow_dispatch:
     inputs:
       builder_run_id:
@@ -14,6 +17,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   smoke:
+    if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +85,7 @@ jobs:
             ${{ runner.temp }}/braich/**/*.cmdline
           retention-days: 3
   x86-regression:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
